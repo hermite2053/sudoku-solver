@@ -1,82 +1,73 @@
-from operator import xor
+from user_io import *
+import copy
 
-sudoku_table_example = [
-		[1, 2, 3, 4, 5, 6, 7, 8, 9],
-		[4, 5, 6, 7, 8, 9, 1, 2, 3],
-                [7, 8, 9, 1, 2, 3, 4, 5, 6],
-                [2, 3, 4, 5, 6, 7, 8, 9, 1],
-                [5, 6, 7, 8, 0, 1, 2, 3, 4],
-                [8, 9, 1, 2, 3, 4, 5, 6, 7],
-                [3, 4, 5, 6, 7, 8, 9, 1, 2],
-                [6, 7, 8, 9, 1, 2, 3, 4, 5],
-                [9, 1, 2, 3, 4, 5, 6, 7, 8]]
+def initial_candidate_sudoku_table():
+    cell_cand = []
+    row = []
+    table = []
+    for i in range(1, 10):
+        cell_cand.append(i)
+    for i in range(9):
+        row.append(copy.deepcopy(cell_cand))
+    for i in range(9):
+        table.append(copy.deepcopy(row))
+    return table
 
-def print_sudoku_table(sudoku_table):
-    for row_idx, row in enumerate(sudoku_table):
-        for idx, elm in enumerate(row):
-            if xor(0 <= idx <= 2 or 6 <= idx <= 8, 3 <= row_idx <= 5):
-                print(f'\x1b[7m{elm}\x1b[0m', end='')
-            else:
-                print(f'{elm}', end='')
-        print()
 
-        
-def block_list_linear(sudoku_table, row, column):
-    block_list = []
+def target_cells_belonging_row(row, column):
+    target_cells = []
+    for i in range(9):
+        if i is not column:
+            target_cells.append([row, i])
+    return target_cells
+
+
+def target_cells_belonging_column(row, column):
+    target_cells = []
+    for i in range(9):
+        if i is not row:
+            target_cells.append([i, column])
+    return target_cells
+
+
+def target_cells(row, column):
+    target_cells = []
     r = int(row // 3 * 3)
     c = int(column // 3 * 3)
     for i in range(r, r+3):
         for j in range(c, c+3):
-            block_list.append(sudoku_table[i][j])
-    return block_list
+            if i is not row and j is not column:
+                target_cells.append([i, j])
+    target_cells = target_cells + target_cells_belonging_column(row, column)
+    target_cells = target_cells + target_cells_belonging_row(row, column)
+    return target_cells
 
 
-def candidates_list(sudoku_table, row, column):
-    cand_list = [1, 2, 3, 4, 5, 6, 7, 8, 9]
-    for i in sudoku_table[row]:
-        if i == 0:
-            continue
-        else:
-            try:
-                cand_list.remove(i)
-            except:
-                continue
-    for i in range(9):
-        if i == 0:
-            continue
-        else:
-            try:
-                cand_list.remove(sudoku_table[i][column])
-            except:
-                continue
-    for i in block_list_linear(sudoku_table, row, column):
-        if i == 0:
-            continue
-        else:
-            try:
-                cand_list.remove(i)
-            except:
-                continue
-    
-    return cand_list
+def main():
+    cand_sudoku_table = initial_candidate_sudoku_table()
+    prob_sudoku_table = []
 
+    # prob_sudoku_table = input_sudoku_table()
+    prob_sudoku_table = sudoku_table_example
 
-def is_solved(sudoku_table):
     for i in range(9):
         for j in range(9):
-            if len(candidates_list(sudoku_table, i, j)) > 0:
-                return False
-    return True
+            if prob_sudoku_table[i][j] != 0:
+                cand_sudoku_table[i][j] = []
+                cand_sudoku_table[i][j].append(prob_sudoku_table[i][j])
+
+    for z in range(100):  # cycle limit
+        for i in range(9):
+            for j in range(9):
+                c = list(cand_sudoku_table[i][j])
+                if len(c) == 1:
+                    remove_target = target_cells(i, j)
+                    for x, y in remove_target:
+                        if c[0] in cand_sudoku_table[x][y]:
+                            cand_sudoku_table[x][y].remove(c[0])
+
+    print_sudoku_table(cand_sudoku_table)
 
 
-print('problem:')
-print_sudoku_table(sudoku_table_example)
-while not is_solved(sudoku_table_example):
-    for i in range(9):
-        for j in range(9):
-            if len(candidates_list(sudoku_table_example, i, j)) == 1:
-                sudoku_table_example[i][j] = \
-                    candidates_list(sudoku_table_example, i, j)[0]
-
-print('Answer:')
-print_sudoku_table(sudoku_table_example)
+if __name__ == '__main__':
+    main()
