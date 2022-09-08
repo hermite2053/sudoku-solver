@@ -1,3 +1,4 @@
+from logic import *
 from user_io import *
 import copy
 
@@ -14,41 +15,26 @@ def initial_candidate_sudoku_table():
     return table
 
 
-def target_cells_belonging_row(row, column):
-    target_cells = []
+def find_cell(sudoku_table, search_list, num):
+    found_list = []
+    for i, j in search_list:
+        if num in sudoku_table[i][j]:
+            found_list.append([i, j])
+    return found_list
+
+
+def chk(sudoku_table):
     for i in range(9):
-        if i is not column:
-            target_cells.append([row, i])
-    return target_cells
-
-
-def target_cells_belonging_column(row, column):
-    target_cells = []
-    for i in range(9):
-        if i is not row:
-            target_cells.append([i, column])
-    return target_cells
-
-
-def target_cells(row, column):
-    target_cells = []
-    r = int(row // 3 * 3)
-    c = int(column // 3 * 3)
-    for i in range(r, r+3):
-        for j in range(c, c+3):
-            if i is not row and j is not column:
-                target_cells.append([i, j])
-    target_cells = target_cells + target_cells_belonging_column(row, column)
-    target_cells = target_cells + target_cells_belonging_row(row, column)
-    return target_cells
-
+        for j in range(9):
+            if len(sudoku_table[i][j]) > 1:
+                return False
+    return True
 
 def main():
     cand_sudoku_table = initial_candidate_sudoku_table()
     prob_sudoku_table = []
 
-    # prob_sudoku_table = input_sudoku_table()
-    prob_sudoku_table = sudoku_table_example
+    prob_sudoku_table = input_sudoku_table()
 
     for i in range(9):
         for j in range(9):
@@ -56,15 +42,64 @@ def main():
                 cand_sudoku_table[i][j] = []
                 cand_sudoku_table[i][j].append(prob_sudoku_table[i][j])
 
-    for z in range(100):  # cycle limit
+    for loop in range(50):  # cycle limit
+        # delete candidates by using confirmed cell 9x9
         for i in range(9):
             for j in range(9):
                 c = list(cand_sudoku_table[i][j])
                 if len(c) == 1:
-                    remove_target = target_cells(i, j)
-                    for x, y in remove_target:
-                        if c[0] in cand_sudoku_table[x][y]:
-                            cand_sudoku_table[x][y].remove(c[0])
+                    delete_candidate_number(cand_sudoku_table, exclusive_cells(i, j), c[0])
+        for n in range(1, 10):
+            for i in range(3):
+                for j in range(3):
+                    cell = find_cell(cand_sudoku_table, subgrid_cells(i, j), n)
+                    if len(cell) == 1:
+                        # search a cell that can contain the number in subgrid
+                        # and then set the number.
+                        identify_cell_number(cand_sudoku_table, cell[0], n)
+                    elif len(cell) == 2:
+                        if cell[0][0] == cell[1][0]:
+                            # same row
+                            tg = row_cells(cell[0][0])
+                            tg.remove(cell[0])
+                            tg.remove(cell[1])
+                            delete_candidate_number(cand_sudoku_table, tg, n)
+                        elif cell[0][1] == cell[1][1]:
+                            # same column
+                            tg = column_cells(cell[0][1])
+                            tg.remove(cell[0])
+                            tg.remove(cell[1])
+                            delete_candidate_number(cand_sudoku_table, tg, n)
+                    elif len(cell) == 3:
+                        if cell[0][0] == cell[1][0] == cell[2][0]:
+                            # same row
+                            tg = row_cells(cell[0][0])
+                            tg.remove(cell[0])
+                            tg.remove(cell[1])
+                            tg.remove(cell[2])
+                            delete_candidate_number(cand_sudoku_table, tg, n)
+                        elif cell[0][1] == cell[1][1] == cell[2][1]:
+                            # same column
+                            tg = column_cells(cell[0][1])
+                            tg.remove(cell[0])
+                            tg.remove(cell[1])
+                            tg.remove(cell[2])
+                            delete_candidate_number(cand_sudoku_table, tg, n)
+            # search a cell that can contain the number in row
+            # and then set the number.
+            for i in range(9):
+                cell = find_cell(cand_sudoku_table, row_cells(i), n)
+                if len(cell) == 1:
+                    identify_cell_number(cand_sudoku_table, cell[0], n)
+            # search a cell that can contain the number in column
+            # and then set the number.
+            for i in range(9):
+                cell = find_cell(cand_sudoku_table, column_cells(i), n)
+                if len(cell) == 1:
+                    identify_cell_number(cand_sudoku_table, cell[0], n)
+
+        if chk(cand_sudoku_table) == True:
+            break
 
     print_sudoku_table(cand_sudoku_table)
 
